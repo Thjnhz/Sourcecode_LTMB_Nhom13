@@ -101,16 +101,8 @@ lib/
   - Tìm kiếm manga nâng cao
   - Bộ lọc và danh mục
 
-## Đóng Góp
-
-Vui lòng đọc hướng dẫn đóng góp của chúng tôi trước khi gửi pull request.
-
-## Giấy Phép
-
-Dự án này được cấp phép theo Giấy phép MIT - xem file LICENSE để biết chi tiết.
-
 ## Lời Cảm Ơn
 
 - Cảm ơn tất cả những người đóng góp
-- Các nhà cung cấp dữ liệu manga
+- Các nhà cung cấp dữ liệu mangadex
 - Cộng đồng Flutter và Firebase
