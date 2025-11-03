@@ -18,7 +18,7 @@ import 'auth_service.dart';
 class MangaService extends GetxService {
   /// Base URL backend cục bộ
   final String _localBaseUrl = GetPlatform.isAndroid
-      ? "http://10.0.2.2:3000"
+      ? "http://152.42.195.222:3000"
       : "http://localhost:3000";
 
   /// Base URL để lấy cover từ Mangadex
@@ -134,7 +134,7 @@ class MangaService extends GetxService {
 
   /// Lấy danh sách manga "hot"
   Future<List<Manga>> getHotManga() async {
-    final url = Uri.parse('$_localBaseUrl/manga/latest');
+    final url = Uri.parse('$_localBaseUrl/manga/hot');
     try {
       final response = await http.get(url, headers: _getAuthHeaders());
       if (response.statusCode != 200) {
@@ -144,7 +144,7 @@ class MangaService extends GetxService {
       if (body['result'] == 'ok' && body['data'] is List) {
         return (body['data'] as List).map((e) => _mapMangaData(e)).toList();
       }
-      throw Exception('Invalid data format from /manga/latest');
+      throw Exception('Invalid data format from /manga/hot');
     } catch (e) {
       throw Exception('Error fetching hot manga: $e');
     }

@@ -10,7 +10,6 @@ import '../../screens/detail_screen.dart';
 import '../../screens/reader_screen.dart';
 import '../../screens/search_screen.dart';
 import '../../screens/chat_screen.dart';
-
 // -----------------------------
 // Import Bindings
 // -----------------------------
@@ -18,7 +17,6 @@ import '../bindings/home_binding.dart';
 import '../bindings/detail_binding.dart';
 import '../bindings/reader_binding.dart';
 import '../bindings/search_binding.dart';
-
 // -----------------------------
 // Import App Routes Constants
 // -----------------------------

@@ -100,6 +100,9 @@ lib/
 - **Tìm Kiếm (`lib/screens/search_screen.dart`):**
   - Tìm kiếm manga nâng cao
   - Bộ lọc và danh mục
+- **Tính Năng Bổ Sung:**
+  - Chế độ Dark/Light (Black Mode): thay đổi giao diện theo chế độ sáng/tối hoặc theo cài đặt hệ thống
+  - Thông báo khi mất mạng: cảnh báo người dùng khi kết nối mạng bị gián đoạn
 
 ## Lời Cảm Ơn
 

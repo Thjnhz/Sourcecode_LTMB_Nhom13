@@ -14,7 +14,7 @@ import '../models/user.dart';
 class AuthService extends GetxService {
   /// URL API backend (tùy Android Emulator hoặc localhost)
   final String _baseUrl = GetPlatform.isAndroid
-      ? "http://10.0.2.2:3000"
+      ? "http://152.42.195.222:3000"
       : "http://localhost:3000";
 
   /// Key lưu token trong GetStorage

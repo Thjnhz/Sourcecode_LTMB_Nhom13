@@ -8,4 +8,5 @@ abstract class Routes {
   static const READER = '/reader';
   static const SEARCH = '/search';
   static const CHAT = '/chat';
+  static const POST_DETAIL = '/post_detail';
 }

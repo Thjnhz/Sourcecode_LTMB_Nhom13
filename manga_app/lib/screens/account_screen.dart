@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 import '../app/controllers/account_controller.dart';
-import '../services/auth_service.dart';
+import '../services/auth_service.dart'; // Import AuthService để truy cập state
+import '../services/settings_service.dart'; // Import SettingsService
 
 /// Màn hình Tài khoản
-/// Hiển thị giao diện:
-/// - Nếu đã đăng nhập: thông tin người dùng + các tùy chọn cài đặt + nút đăng xuất
-/// - Nếu chưa đăng nhập: Tab Đăng nhập / Đăng ký với form tương ứng
+/// Hiển thị giao diện: Đã đăng nhập (Cài đặt) / Chưa đăng nhập (Tab Login/Register)
 class AccountScreen extends GetView<AccountController> {
   const AccountScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Lấy AuthService toàn cục để quản lý trạng thái đăng nhập
+    // Lấy AuthService toàn cục
     final AuthService authService = Get.find<AuthService>();
-    final theme = Theme.of(context);
 
     return Scaffold(
-      // SafeArea tránh bị che bởi thanh trạng thái
+      // Không có AppBar riêng, vì nó là một tab
       body: SafeArea(
         child: Obx(() {
           // Quan sát trạng thái đăng nhập
@@ -29,27 +28,27 @@ class AccountScreen extends GetView<AccountController> {
     );
   }
 
-  /// Giao diện khi người dùng đã đăng nhập
+  // --- 1. Giao diện khi ĐÃ Đăng nhập (Kiểu Settings) ---
   Widget _buildLoggedInView(
     BuildContext context,
     AuthService authService,
     AccountController controller,
   ) {
     final theme = Theme.of(context);
+    final SettingsService settingsService = Get.find<SettingsService>();
 
-    // Quan sát thông tin user để cập nhật UI ngay khi thay đổi
     return Obx(() {
+      // Quan sát thông tin user
       final user = authService.currentUser.value;
 
       if (user == null) {
-        // Nếu user null (vừa logout), hiển thị loading
         return const Center(child: CircularProgressIndicator());
       }
 
       return ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
         children: [
-          // Phần thông tin người dùng: avatar + tên + email
+          // --- Thông tin User (Avatar + Tên) ---
           Row(
             children: [
               CircleAvatar(
@@ -88,7 +87,7 @@ class AccountScreen extends GetView<AccountController> {
 
           const Divider(height: 40),
 
-          // Phần cài đặt chung
+          // --- Cài đặt chung ---
           Text(
             'Cài đặt chung',
             style: theme.textTheme.titleSmall?.copyWith(
@@ -97,7 +96,7 @@ class AccountScreen extends GetView<AccountController> {
             ),
           ),
           const SizedBox(height: 8),
-          // Các tùy chọn ví dụ
+
           ListTile(
             leading: const Icon(Icons.edit_outlined),
             title: const Text('Chỉnh sửa hồ sơ'),
@@ -105,10 +104,11 @@ class AccountScreen extends GetView<AccountController> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
-            onTap: () {
-              Get.snackbar('Thông báo', 'Tính năng đang phát triển.');
-            },
+            onTap: () =>
+                Get.snackbar('Thông báo', 'Tính năng đang phát triển.'),
           ),
+
+          // --- Cài đặt Theme ---
           ListTile(
             leading: const Icon(Icons.palette_outlined),
             title: const Text('Giao diện (Theme)'),
@@ -116,10 +116,12 @@ class AccountScreen extends GetView<AccountController> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
-            onTap: () {
-              Get.snackbar('Thông báo', 'Tính năng đang phát triển.');
-            },
+            onTap: () => _showThemeDialog(
+              context,
+              settingsService,
+            ), // Gọi hàm chọn theme
           ),
+
           ListTile(
             leading: const Icon(Icons.notifications_outlined),
             title: const Text('Thông báo'),
@@ -127,14 +129,13 @@ class AccountScreen extends GetView<AccountController> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
-            onTap: () {
-              Get.snackbar('Thông báo', 'Tính năng đang phát triển.');
-            },
+            onTap: () =>
+                Get.snackbar('Thông báo', 'Tính năng đang phát triển.'),
           ),
 
           const Divider(height: 30),
 
-          // Nút đăng xuất
+          // --- Nút đăng xuất ---
           Center(
             child: TextButton(
               onPressed: controller.handleLogout,
@@ -159,7 +160,7 @@ class AccountScreen extends GetView<AccountController> {
     });
   }
 
-  /// Giao diện khi người dùng chưa đăng nhập
+  // --- 2. Giao diện khi CHƯA Đăng nhập (Thiết kế lại với Tab) ---
   Widget _buildLoggedOutView(
     BuildContext context,
     AccountController controller,
@@ -177,7 +178,7 @@ class AccountScreen extends GetView<AccountController> {
             ),
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+              color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -201,6 +202,7 @@ class AccountScreen extends GetView<AccountController> {
                 duration: const Duration(milliseconds: 200),
                 transitionBuilder: (child, animation) =>
                     FadeTransition(opacity: animation, child: child),
+                // Chuyển đổi Form giữa Login (key=login) và Register (key=register)
                 child: controller.selectedTabIndex.value == 0
                     ? _buildLoginForm(
                         context,
@@ -220,7 +222,7 @@ class AccountScreen extends GetView<AccountController> {
     );
   }
 
-  /// Widget nút Tab tùy chỉnh
+  // --- 3. Helper: Widget Nút Tab tùy chỉnh ---
   Widget _buildTabButton(
     BuildContext context,
     String title,
@@ -264,7 +266,7 @@ class AccountScreen extends GetView<AccountController> {
     );
   }
 
-  /// Form Đăng nhập
+  // --- 4. Helper: Form Đăng nhập ---
   Widget _buildLoginForm(
     BuildContext context,
     AccountController controller, {
@@ -276,52 +278,35 @@ class AccountScreen extends GetView<AccountController> {
       key: key,
       children: [
         const SizedBox(height: 10),
-        // Username
         TextField(
           controller: controller.loginUsernameController,
-          decoration: InputDecoration(
-            labelText: 'Tên đăng nhập',
-            prefixIcon: const Icon(Icons.person_outline),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            filled: true,
-            fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(
-              0.3,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
+          decoration: _getInputDecoration(
+            theme,
+            'Tên đăng nhập',
+            Icons.person_outline,
           ),
           keyboardType: TextInputType.text,
         ),
         const SizedBox(height: 16),
-        // Password
         Obx(
           () => TextField(
             controller: controller.loginPasswordController,
-            decoration: InputDecoration(
-              labelText: 'Mật khẩu',
-              prefixIcon: const Icon(Icons.lock_outline),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              filled: true,
-              fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(
-                0.3,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  controller.isLoginPasswordHidden.value
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
+            decoration:
+                _getInputDecoration(
+                  theme,
+                  'Mật khẩu',
+                  Icons.lock_outline,
+                ).copyWith(
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      controller.isLoginPasswordHidden.value
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: theme.hintColor,
+                    ),
+                    onPressed: controller.toggleLoginPasswordVisibility,
+                  ),
                 ),
-                onPressed: controller.toggleLoginPasswordVisibility,
-              ),
-            ),
             obscureText: controller.isLoginPasswordHidden.value,
           ),
         ),
@@ -336,6 +321,8 @@ class AccountScreen extends GetView<AccountController> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
             ),
             child: controller.isLoggingIn.isTrue
                 ? const SizedBox(
@@ -353,7 +340,7 @@ class AccountScreen extends GetView<AccountController> {
     );
   }
 
-  /// Form Đăng ký
+  // --- 5. Helper: Form Đăng ký ---
   Widget _buildRegisterForm(
     BuildContext context,
     AccountController controller, {
@@ -368,37 +355,17 @@ class AccountScreen extends GetView<AccountController> {
         // Username
         TextField(
           controller: controller.registerUsernameController,
-          decoration: InputDecoration(
-            labelText: 'Tên đăng nhập',
-            prefixIcon: const Icon(Icons.person_outline),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            filled: true,
-            fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(
-              0.3,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
+          decoration: _getInputDecoration(
+            theme,
+            'Tên đăng nhập',
+            Icons.person_outline,
           ),
         ),
         const SizedBox(height: 16),
         // Email
         TextField(
           controller: controller.registerEmailController,
-          decoration: InputDecoration(
-            labelText: 'Email',
-            prefixIcon: const Icon(Icons.email_outlined),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            filled: true,
-            fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(
-              0.3,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-          ),
+          decoration: _getInputDecoration(theme, 'Email', Icons.email_outlined),
           keyboardType: TextInputType.emailAddress,
         ),
         const SizedBox(height: 16),
@@ -406,29 +373,22 @@ class AccountScreen extends GetView<AccountController> {
         Obx(
           () => TextField(
             controller: controller.registerPasswordController,
-            decoration: InputDecoration(
-              labelText: 'Mật khẩu',
-              prefixIcon: const Icon(Icons.lock_outline),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              filled: true,
-              fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(
-                0.3,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  controller.isRegisterPasswordHidden.value
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
+            decoration:
+                _getInputDecoration(
+                  theme,
+                  'Mật khẩu (ít nhất 6 ký tự)',
+                  Icons.lock_outline,
+                ).copyWith(
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      controller.isRegisterPasswordHidden.value
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: theme.hintColor,
+                    ),
+                    onPressed: controller.toggleRegisterPasswordVisibility,
+                  ),
                 ),
-                onPressed: controller.toggleRegisterPasswordVisibility,
-              ),
-            ),
             obscureText: controller.isRegisterPasswordHidden.value,
           ),
         ),
@@ -459,6 +419,82 @@ class AccountScreen extends GetView<AccountController> {
           ),
         ),
       ],
+    );
+  }
+
+  // --- 6. Helper: Input Decoration chung ---
+  InputDecoration _getInputDecoration(
+    ThemeData theme,
+    String label,
+    IconData icon,
+  ) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: theme.colorScheme.primary),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      filled: true,
+      fillColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+      ),
+    );
+  }
+
+  // --- 7. Helper: BottomSheet chọn Theme ---
+  void _showThemeDialog(BuildContext context, SettingsService settingsService) {
+    final theme = Theme.of(context);
+
+    Get.bottomSheet(
+      Container(
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(16.0),
+            topRight: Radius.circular(16.0),
+          ),
+        ),
+        child: Wrap(
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 20.0,
+              ),
+              child: Text('Chọn giao diện', style: theme.textTheme.titleLarge),
+            ),
+            ListTile(
+              leading: const Icon(Icons.brightness_5_outlined),
+              title: const Text('Sáng'),
+              onTap: () {
+                settingsService.switchTheme(ThemeMode.light);
+                Get.back();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.brightness_2_outlined),
+              title: const Text('Tối'),
+              onTap: () {
+                settingsService.switchTheme(ThemeMode.dark);
+                Get.back();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.brightness_auto_outlined),
+              title: const Text('Theo hệ thống'),
+              onTap: () {
+                settingsService.switchTheme(ThemeMode.system);
+                Get.back();
+              },
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
     );
   }
 }
