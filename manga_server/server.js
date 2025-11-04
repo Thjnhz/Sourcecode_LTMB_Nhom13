@@ -38,15 +38,68 @@ app.use((req, res, next) => {
 // ===============================================
 // --- SECTION MANGA ENDPOINTS ---
 // ===============================================
+app.get('/manga/hot', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = parseInt(req.query.offset) || 0;
 
+    const safeLimit = Math.max(1, limit);
+    const safeOffset = Math.max(0, offset);
+
+    // Query xếp hạng manga
+    const sql = `
+      SELECT 
+        m.id, 
+        m.title, 
+        m.cover_filename,
+        m.status,
+        m.publication_year,
+        COALESCE(l.follow_count,0) AS follow_count,
+        COALESCE(c.chapter_count,0) AS chapter_count,
+        (COALESCE(l.follow_count,0) * 2 + COALESCE(c.chapter_count,0)) AS score
+      FROM mangas m
+      LEFT JOIN (
+        SELECT manga_id, COUNT(*) AS follow_count
+        FROM user_library
+        GROUP BY manga_id
+      ) l ON l.manga_id = m.id
+      LEFT JOIN (
+        SELECT manga_id, COUNT(*) AS chapter_count
+        FROM chapters
+        GROUP BY manga_id
+      ) c ON c.manga_id = m.id
+      ORDER BY score DESC
+      LIMIT ${safeLimit} OFFSET ${safeOffset}
+    `;
+
+    const [rows] = await pool.execute(sql);
+
+    res.json({
+      result: 'ok',
+      data: rows,
+      limit: safeLimit,
+      offset: safeOffset,
+    });
+  } catch (error) {
+    console.error('Lỗi khi lấy /manga/hot:', error);
+    res.status(500).json({ result: 'error', message: error.message });
+  }
+});
 app.get('/manga/latest', async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      `SELECT id, title, cover_filename 
-       FROM mangas 
-       ORDER BY COALESCE(last_chapter_uploaded_at, created_at) DESC 
-       LIMIT 20`,
+      `SELECT 
+         m.id, 
+         m.title, 
+         m.cover_filename
+       FROM mangas m
+       JOIN chapters c ON c.manga_id = m.id
+       GROUP BY m.id
+       HAVING COUNT(c.id) > 1
+       ORDER BY COALESCE(m.last_chapter_uploaded_at, m.created_at) DESC
+       LIMIT 20`
     );
+
     res.json({ result: 'ok', data: rows });
   } catch (error) {
     console.error('Lỗi khi lấy /manga/latest:', error);
@@ -61,14 +114,25 @@ app.get('/manga', async (req, res) => {
     const safeLimit = Math.max(1, limit);
     const safeOffset = Math.max(0, offset);
 
+    // Lấy danh sách manga kèm has_multiple_chapters
     const selectQuery = `
-      SELECT id, title, cover_filename, status, publication_year 
-      FROM mangas 
-      ORDER BY COALESCE(last_chapter_uploaded_at, created_at) DESC 
-      LIMIT ${safeLimit} OFFSET ${safeOffset}
-    `;
+  SELECT 
+    m.id, 
+    m.title, 
+    m.cover_filename, 
+    m.status, 
+    m.publication_year,
+    (SELECT COUNT(*) FROM chapters c WHERE c.manga_id = m.id) > 1 AS has_multiple_chapters
+  FROM mangas m
+  WHERE EXISTS (
+    SELECT 1 FROM chapters c WHERE c.manga_id = m.id
+  )
+  ORDER BY COALESCE(m.last_chapter_uploaded_at, m.created_at) DESC
+  LIMIT ${safeLimit} OFFSET ${safeOffset}
+`;
     const [mangaRows] = await pool.execute(selectQuery);
 
+    // Lấy tổng số manga (cho pagination)
     const countQuery = 'SELECT COUNT(*) as total FROM mangas';
     const [countRows] = await pool.execute(countQuery);
     const totalCount = countRows[0].total;
@@ -85,7 +149,6 @@ app.get('/manga', async (req, res) => {
     res.status(500).json({ result: 'error', message: error.message });
   }
 });
-
 app.get('/manga/:id', async (req, res) => {
   const mangaId = req.params.id;
   try {
